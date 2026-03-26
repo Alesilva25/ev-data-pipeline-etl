@@ -18,8 +18,6 @@ if __name__ == '__main__':
     QTD_GEOPLAN = 15000
     QTD_INFRA = 48100
     QTD_SISLIC = 46123  
-    
-    # Quantidades para as duas abas do AuditReport no mesmo arquivo
     QTD_AUDIT_ABA_1 = 45000 
     QTD_AUDIT_ABA_2 = 35000 
 
@@ -30,28 +28,90 @@ if __name__ == '__main__':
         numeros = np.random.choice(pool_ids, size=qtd, replace=True)
         return [f"EV-{n}" for n in numeros]
 
-    # Função auxiliar para gerar estrutura da AuditReport (tudo do mesmo mês: Março/2026)
+    # Domínios de dados para facilitar a criação de divergências
+    DOM_GEOPLAN = ['SHOPPING', 'SUPERMERCADO', 'PONTO ECOLÓGICO', 'INTERNO', 'COBERTURA', 'A DEFINIR', 'NOVO_TERRENO', 'COMERCIAL']
+    DOM_INFRA = ['CONECTADO', 'INFRA NÃO CAPACITADA', 'PENDENTE ATIVAÇÃO', 'FORA DO AR']
+    DOM_SISLIC = ['APROVADO', 'EM ANÁLISE', 'NÃO TEM LICENÇA', 'PENDENTE INSTALAÇÃO']
+    DOM_AUDIT_PONTO = ['SHOPPING', 'SUPERMERCADO', 'PONTO ECOLÓGICO', 'INTERNO', 'COBERTURA', 'A DEFINIR', 'TORRE', 'POSTE']
+
+    # ==========================================
+    # 1. GERANDO AS BASES FONTES PRIMEIRO
+    # ==========================================
+    print("Gerando bases auxiliares (GeoPlan, InfraGest, SisLic, AuditReport)...")
+
+    # --- GEOPLAN ---
+    ids_geoplan = gerar_ids(QTD_GEOPLAN)
+    df_geoplan = pd.DataFrame({
+        'ID_ESTACAO': ids_geoplan,
+        'TIPO_ESTACAO_GEOPLAN': np.random.choice(DOM_GEOPLAN, QTD_GEOPLAN),
+        'LATITUDE': np.random.uniform(-33.7, -5.2, QTD_GEOPLAN),
+        'LONGITUDE': np.random.uniform(-73.9, -34.8, QTD_GEOPLAN),
+        'REGIAO_COMERCIAL': np.random.choice(['SUL', 'SUDESTE', 'NORDESTE', 'CENTRO-OESTE', 'NORTE'], QTD_GEOPLAN),
+        'DATA_CRIACAO_SISTEMA': pd.to_datetime(np.random.choice(pd.date_range('2022-01-01', '2026-01-01'), QTD_GEOPLAN)),
+        'ANALISTA_RESPONSAVEL': np.random.choice(['João Silva', 'Maria Souza', 'Carlos Eduardo', 'Ana Paula'], QTD_GEOPLAN)
+    })
+    df_geoplan.to_excel('bases/GeoPlan.xlsx', index=False)
+
+    # --- INFRAGEST ---
+    df_infra = pd.DataFrame({
+        'PONTO_ER': gerar_ids(QTD_INFRA),
+        'STATUS_INFRAGEST': np.random.choice(DOM_INFRA, QTD_INFRA),
+        'FORNECEDOR_ENERGIA': np.random.choice(['Enel', 'Light', 'CPFL', 'Copel'], QTD_INFRA),
+        'TIPO_CONEXAO': np.random.choice(['TRIFÁSICA', 'MONOFÁSICA', 'BIFÁSICA'], QTD_INFRA)
+    })
+    df_infra.to_excel('bases/InfraGest.xlsx', index=False)
+
+    # --- SISLIC ---
+    df_sislic = pd.DataFrame({
+        'CODIGO_ER': gerar_ids(QTD_SISLIC),
+        'STATUS_SISLIC': np.random.choice(DOM_SISLIC, QTD_SISLIC),
+        'NUMERO_PROCESSO_PREFEITURA': [f"PROC-{np.random.randint(1000,9999)}" for _ in range(QTD_SISLIC)],
+        'DESPACHANTE': np.random.choice(['Despachante A', 'Despachante B', 'Interno'], QTD_SISLIC)
+    })
+    df_sislic.to_excel('bases/SisLic.xlsx', index=False)
+
+    # --- AUDIT REPORT ---
     def gerar_df_audit(qtd):
         return pd.DataFrame({
             'CODIGO_ER 1': gerar_ids(qtd),
-            'TIPO_DE_PONTO 62': np.random.choice(['SHOPPING', 'SUPERMERCADO', 'PONTO ECOLÓGICO', 'INTERNO', 'COBERTURA', 'A DEFINIR'], qtd),
+            'TIPO_DE_PONTO 62': np.random.choice(DOM_AUDIT_PONTO, qtd),
             'LATITUDE 25': np.random.uniform(-33.7, -5.2, qtd),
             'LONGITUDE 27': np.random.uniform(-73.9, -34.8, qtd),
-            'EMPRESA_AUDITORA': np.random.choice(['SGS', 'Bureau Veritas', 'TUV', 'Falconi', 'VisãoLocal'], qtd),
-            'DATA_VISTORIA': pd.to_datetime(np.random.choice(pd.date_range('2026-03-01', '2026-03-25'), qtd)),
-            'OBSERVACAO_CAMPO': np.random.choice(['Local adequado', 'Piso irregular', 'Necessita reforço', 'Sem problemas', 'Risco de alagamento'], qtd),
-            'ID_VISTORIA': np.random.randint(10000, 999999, qtd),
-            'NOME_INSPETOR': [f"Inspetor_{np.random.randint(1,100)}" for _ in range(qtd)],
-            'FOTOS_ANEXADAS': np.random.choice(['SIM', 'NAO'], qtd),
-            'RESULTADO_ESTRUTURAL': np.random.choice(['APROVADO', 'REPROVADO', 'COM RESSALVAS'], qtd),
-            'NIVEL_SINAL_4G': np.random.choice(['EXCELENTE', 'BOM', 'FRACO', 'INEXISTENTE'], qtd),
-            'TEMPERATURA_MEDIDA': np.round(np.random.uniform(20.0, 40.0), 1),
-            'ACESSIBILIDADE_OK': np.random.choice(['SIM', 'NAO'], qtd),
-            'SITUACAO_PISO': np.random.choice(['CONCRETO', 'ASFALTO', 'TERRA', 'GRAMA'], qtd)
+            'EMPRESA_AUDITORA': np.random.choice(['SGS', 'Bureau Veritas', 'TUV', 'Falconi'], qtd)
         })
+    df_audit_1 = gerar_df_audit(QTD_AUDIT_ABA_1)
+    df_audit_2 = gerar_df_audit(QTD_AUDIT_ABA_2)
+    df_audit_full = pd.concat([df_audit_1, df_audit_2]) 
+
+    with pd.ExcelWriter('bases/AuditReport.xlsx', engine='openpyxl') as writer:
+        df_audit_1.to_excel(writer, sheet_name='Lote_1', index=False)
+        df_audit_2.to_excel(writer, sheet_name='Lote_2', index=False)
 
     # ==========================================
-    # 1. BASES DE CONECTADOS (Atual e Anterior)
+    # 2. FUNÇÃO PARA GERAR DIVERGÊNCIAS NO ANTERIOR
+    # ==========================================
+    def gerar_coluna_divergente(ids_alvo, df_base, col_id_base, col_val_base, dominio_valores, is_coord=False):
+        dict_base = df_base.set_index(col_id_base)[col_val_base].to_dict()
+        valores_gerados = []
+        
+        for id_estacao in ids_alvo:
+            if id_estacao in dict_base:
+                val_real = dict_base[id_estacao]
+                if np.random.rand() > 0.5:
+                    valores_gerados.append(val_real) 
+                else:
+                    if is_coord:
+                        valores_gerados.append(val_real + 0.5) 
+                    else:
+                        opcoes = [x for x in dominio_valores if x != val_real]
+                        valores_gerados.append(np.random.choice(opcoes)) 
+            else:
+                valores_gerados.append(np.random.uniform(-33, -5) if is_coord else np.random.choice(dominio_valores))
+                
+        return valores_gerados
+
+    # ==========================================
+    # 3. BASES DE CONECTADOS (Atual e Anterior)
     # ==========================================
     print("Gerando Conectados Atual e Anterior...")
     
@@ -59,115 +119,35 @@ if __name__ == '__main__':
     df_atual = pd.DataFrame({
         'ID_ESTACAO': ids_atual,
         'STATUS CONSOLIDADO': np.random.choice(['OPERACIONAL', 'SEM CONEXÃO DE REDE', 'ESTAÇÃO EM COBERTURA', 'EM OBRAS'], len(ids_atual)),
-        'STATUS_FATURAMENTO': np.random.choice([0, 1, 2], len(ids_atual)),
         'CHECKS': 'AGUARDANDO_PROCESSAMENTO',
-        'MES_REFERENCIA': '03/2026',
-        'EXPORTADO_POR': 'SISTEMA_BATCH',
-        'DATA_PROCESSAMENTO': '2026-03-25',
-        'VERSAO_PIPELINE': 'v1.5.0',
-        'GESTOR_APROVADOR': np.random.choice(['Diretor A', 'Gerente B', 'Coordenador C'], len(ids_atual)),
-        'TIPO_CONTRATO_LOCACAO': np.random.choice(['COMODATO', 'ALUGUEL', 'PARCERIA'], len(ids_atual)),
-        'VALOR_ALUGUEL': np.round(np.random.uniform(0, 5000, len(ids_atual)), 2)
+        'MES_REFERENCIA': '03/2026'
     })
     df_atual.to_excel('bases/t_conectados_atual.xlsx', index=False)
 
     ids_anterior = [f"EV-{i}" for i in range(10000, 10000 + QTD_CONECTADOS_ANTERIOR)]
+    
     df_anterior = pd.DataFrame({
+        # Colunas exigidas
         'ID_ESTACAO': ids_anterior,
         'STATUS CONSOLIDADO': np.random.choice(['OPERACIONAL', 'SEM CONEXÃO DE REDE', 'ESTAÇÃO EM COBERTURA'], len(ids_anterior)),
-        'STATUS_FATURAMENTO': np.random.choice([0, 1, 2], len(ids_anterior)),
         'CHECKS': 'OK',
         'MES_REFERENCIA': '02/2026',
-        'EXPORTADO_POR': 'SISTEMA_BATCH',
-        'DATA_PROCESSAMENTO': '2026-02-28',
-        'VERSAO_PIPELINE': 'v1.4.2',
-        'GESTOR_APROVADOR': np.random.choice(['Diretor A', 'Gerente B', 'Coordenador C'], len(ids_anterior)),
-        'TIPO_CONTRATO_LOCACAO': np.random.choice(['COMODATO', 'ALUGUEL', 'PARCERIA'], len(ids_anterior)),
-        'VALOR_ALUGUEL': np.round(np.random.uniform(0, 5000, len(ids_anterior)), 2)
+        'STATUS E-MAIL': np.random.choice(['ENVIADO', 'PENDENTE', 'ERRO'], len(ids_anterior)),
+        'STATUS_SISLIC': gerar_coluna_divergente(ids_anterior, df_sislic, 'CODIGO_ER', 'STATUS_SISLIC', DOM_SISLIC),
+        'TIPO_ESTACAO_GEOPLAN': gerar_coluna_divergente(ids_anterior, df_geoplan, 'ID_ESTACAO', 'TIPO_ESTACAO_GEOPLAN', DOM_GEOPLAN),
+        'SISTEMA_ER': gerar_coluna_divergente(ids_anterior, df_infra, 'PONTO_ER', 'STATUS_INFRAGEST', DOM_INFRA),
+        'TIPO_DE_PONTO 62': gerar_coluna_divergente(ids_anterior, df_audit_full, 'CODIGO_ER 1', 'TIPO_DE_PONTO 62', DOM_AUDIT_PONTO),
+        'LATITUDE': gerar_coluna_divergente(ids_anterior, df_audit_full, 'CODIGO_ER 1', 'LATITUDE 25', [], is_coord=True),
+        'LONGITUDE': gerar_coluna_divergente(ids_anterior, df_audit_full, 'CODIGO_ER 1', 'LONGITUDE 27', [], is_coord=True),
+        
+        # Novas colunas adicionadas para dar realismo (ruído)
+        'GESTOR_RESPONSAVEL': np.random.choice(['Carlos Silva', 'Mariana Souza', 'Fernando Oliveira', 'Ana Costa', 'Julio Cesar', 'Beatriz Lima'], len(ids_anterior)),
+        'CUSTO_MANUTENCAO_BRL': np.round(np.random.uniform(500, 25000, len(ids_anterior)), 2),
+        'DATA_ULTIMA_VISTORIA': pd.to_datetime(np.random.choice(pd.date_range('2024-01-01', '2026-02-28'), len(ids_anterior))),
+        'NIVEL_PRIORIDADE': np.random.choice(['ALTA', 'MÉDIA', 'BAIXA', 'CRÍTICA'], len(ids_anterior)),
+        'OBSERVACOES_GERAIS': np.random.choice(['Sem pendências.', 'Aguardando liberação de acesso.', 'Equipamento oxidado.', 'Revisar no próximo ciclo.', ''], len(ids_anterior))
     })
     df_anterior.to_excel('bases/t_conectados_anterior.xlsx', index=False)
-
-    # ==========================================
-    # 2. BASE GEOPLAN (15.000 registros | 15 Colunas)
-    # ==========================================
-    print("Gerando GeoPlan...")
-    ids_geoplan = gerar_ids(QTD_GEOPLAN)
-    df_geoplan = pd.DataFrame({
-        'ID_ESTACAO': ids_geoplan,
-        'TIPO_ESTACAO_GEOPLAN': np.random.choice(['SHOPPING', 'SUPERMERCADO', 'PONTO ECOLÓGICO', 'INTERNO', 'COBERTURA', 'A DEFINIR', 'NOVO_TERRENO', 'COMERCIAL'], QTD_GEOPLAN),
-        'LATITUDE': np.random.uniform(-33.7, -5.2, QTD_GEOPLAN),
-        'LONGITUDE': np.random.uniform(-73.9, -34.8, QTD_GEOPLAN),
-        'REGIAO_COMERCIAL': np.random.choice(['SUL', 'SUDESTE', 'NORDESTE', 'CENTRO-OESTE', 'NORTE'], QTD_GEOPLAN),
-        'DATA_CRIACAO_SISTEMA': pd.to_datetime(np.random.choice(pd.date_range('2022-01-01', '2026-01-01'), QTD_GEOPLAN)),
-        'ANALISTA_RESPONSAVEL': np.random.choice(['João Silva', 'Maria Souza', 'Carlos Eduardo', 'Ana Paula', 'Felipe Santos', 'Mariana Costa'], QTD_GEOPLAN),
-        'CENTRO_DE_CUSTO': np.random.randint(100000, 999999, QTD_GEOPLAN),
-        'CIDADE': np.random.choice(['São Paulo', 'Campinas', 'Rio de Janeiro', 'Curitiba', 'Belo Horizonte', 'Salvador'], QTD_GEOPLAN),
-        'ESTADO': np.random.choice(['SP', 'RJ', 'PR', 'MG', 'BA', 'SC'], QTD_GEOPLAN),
-        'CEP': np.random.randint(10000000, 99999999, QTD_GEOPLAN),
-        'STATUS_PROJETO': np.random.choice(['EM ESTUDO', 'APROVADO_DIRETORIA', 'ON HOLD', 'KICK-OFF'], QTD_GEOPLAN),
-        'ORCAMENTO_PREVISTO': np.round(np.random.uniform(50000, 250000, QTD_GEOPLAN), 2),
-        'NOME_LOCAL': [f"Local_{i}" for i in range(QTD_GEOPLAN)],
-        'CONCESSIONARIA_LOCAL': np.random.choice(['Enel', 'Light', 'Copel', 'CPFL'], QTD_GEOPLAN)
-    })
-    df_geoplan.to_excel('bases/GeoPlan.xlsx', index=False)
-
-    # ==========================================
-    # 3. BASE AUDIT_REPORT (1 Arquivo, 2 Abas/Sheets)
-    # ==========================================
-    print("Gerando AuditReport (Com múltiplas abas)...")
-    df_audit_1 = gerar_df_audit(QTD_AUDIT_ABA_1)
-    df_audit_2 = gerar_df_audit(QTD_AUDIT_ABA_2)
-
-    # O pd.ExcelWriter permite gravar várias abas no mesmo arquivo
-    with pd.ExcelWriter('bases/AuditReport.xlsx', engine='openpyxl') as writer:
-        df_audit_1.to_excel(writer, sheet_name='Lote_1', index=False)
-        df_audit_2.to_excel(writer, sheet_name='Lote_2', index=False)
-
-    # ==========================================
-    # 4. BASE INFRAGEST (48.100 registros | 15 Colunas)
-    # ==========================================
-    print("Gerando InfraGest...")
-    df_infra = pd.DataFrame({
-        'PONTO_ER': gerar_ids(QTD_INFRA),
-        'STATUS_INFRA': np.random.choice(['CONECTADO', 'INFRA NÃO CAPACITADA', 'PENDENTE ATIVAÇÃO', ''], QTD_INFRA),
-        'FORNECEDOR_ENERGIA': np.random.choice(['Enel', 'Light', 'CPFL', 'Copel', 'Neoenergia'], QTD_INFRA),
-        'TIPO_CONEXAO': np.random.choice(['TRIFÁSICA', 'MONOFÁSICA', 'BIFÁSICA'], QTD_INFRA),
-        'POTENCIA_KW': np.random.choice([50, 150, 350], QTD_INFRA),
-        'NUMERO_MEDIDOR': np.random.randint(1000000, 9999999, QTD_INFRA),
-        'DATA_LIGACAO_PADRAO': pd.to_datetime(np.random.choice(pd.date_range('2023-01-01', '2026-01-01'), QTD_INFRA)),
-        'CUSTO_MENSAL_ESTIMADO': np.round(np.random.uniform(500, 3000, QTD_INFRA), 2),
-        'EMPREITEIRA_OBRA': np.random.choice(['Construtora A', 'Engenharia B', 'InfraTech'], QTD_INFRA),
-        'CABO_METRAGEM': np.random.randint(10, 500, QTD_INFRA),
-        'TIPO_QUADRO_ELETRICO': np.random.choice(['QGBT', 'QDC', 'QTA'], QTD_INFRA),
-        'CHAVE_GTI': np.random.choice(['ATIVADA', 'DESATIVADA'], QTD_INFRA),
-        'TIPO_TRAFO': np.random.choice(['PEDESTAL', 'POSTE', 'SUBTERRANEO'], QTD_INFRA),
-        'ALARMES_ATIVOS': np.random.randint(0, 5, QTD_INFRA),
-        'DATA_ULTIMA_MANUTENCAO': pd.to_datetime(np.random.choice(pd.date_range('2025-01-01', '2026-03-01'), QTD_INFRA))
-    })
-    df_infra.to_excel('bases/InfraGest.xlsx', index=False)
-
-    # ==========================================
-    # 5. BASE SISLIC (46.123 registros | 15 Colunas)
-    # ==========================================
-    print("Gerando SisLic...")
-    df_sislic = pd.DataFrame({
-        'CODIGO_ER': gerar_ids(QTD_SISLIC),
-        'STATUS_SISLIC': np.random.choice(['APROVADO', 'EM ANÁLISE', 'NÃO TEM LICENÇA', 'PENDENTE INSTALAÇÃO'], QTD_SISLIC),
-        'NUMERO_PROCESSO_PREFEITURA': [f"PROC-{np.random.randint(1000,9999)}" for _ in range(QTD_SISLIC)],
-        'DESPACHANTE': np.random.choice(['Despachante A', 'Despachante B', 'Interno'], QTD_SISLIC),
-        'DATA_ENTRADA_ORGAO': pd.to_datetime(np.random.choice(pd.date_range('2024-01-01', '2026-01-01'), QTD_SISLIC)),
-        'DATA_ULTIMA_MOVIMENTACAO': pd.to_datetime(np.random.choice(pd.date_range('2025-06-01', '2026-03-01'), QTD_SISLIC)),
-        'TAXA_PAGA': np.random.choice(['SIM', 'NAO'], QTD_SISLIC),
-        'VALOR_TAXA': np.round(np.random.uniform(100, 1500, QTD_SISLIC), 2),
-        'ORGAO_MUNICIPAL': np.random.choice(['SEPLAN', 'SMDU', 'CETESB', 'BOMBEIROS'], QTD_SISLIC),
-        'TIPO_ALVARA': np.random.choice(['DEFINITIVO', 'PROVISORIO', 'ISENTO'], QTD_SISLIC),
-        'RESTRICAO_AMBIENTAL': np.random.choice(['NENHUMA', 'APP', 'ZONA_TOMBADA'], QTD_SISLIC),
-        'NUMERO_PROTOCOLO': np.random.randint(10000000, 99999999, QTD_SISLIC),
-        'ANALISTA_PREFEITURA': np.random.choice(['Servidor_1', 'Servidor_2', 'Servidor_3'], QTD_SISLIC),
-        'PRAZO_ESTIMADO_DIAS': np.random.randint(15, 180, QTD_SISLIC),
-        'OBS_LICENCIAMENTO': np.random.choice(['Aguardando assinatura', 'Documentacao pendente', 'Emissao liberada', 'Em analise tecnica'], QTD_SISLIC)
-    })
-    df_sislic.to_excel('bases/SisLic.xlsx', index=False)
 
     end_time = time.time()
     print(f"✅ Sucesso! Bases geradas em {round(end_time - start_time, 2)} segundos.")
