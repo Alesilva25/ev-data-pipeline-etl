@@ -134,68 +134,60 @@ Campos usados: PONTO_ER (Chave), STATUS_INFRAGEST
 
 🪄 4. Regras de Transformação e Limpeza
     1 - Regras de Cruzamento Inicial (Bases de Conectados):
+        1.1 - A base conectados_atual é importada e sofre filtro onde apenas conectados_atual['ID_ESTACAO'] atua como mestre.
 
-    1.1 - A base conectados_atual é importada e sofre filtro onde apenas conectados_atual['ID_ESTACAO'] atua como mestre.
-
-    1.2 - Os valores de conectados_anterior são trazidos (Left Join) apenas para as chaves de ID_ESTACAO que existirem na base atual. Chaves novas recebem valores vazios para posterior classificação.
+        1.2 - Os valores de conectados_anterior são trazidos (Left Join) apenas para as chaves de ID_ESTACAO que existirem na base atual. Chaves novas recebem valores vazios para posterior classificação.
 
     2 - Regras da base GeoPlan e AuditReport:
+        2.1 - Todos os valores nulos em geoplan['TIPO_ESTACAO_GEOPLAN_AUX'] recebem o valor A DEFINIR.
 
-    2.1 - Todos os valores nulos em geoplan['TIPO_ESTACAO_GEOPLAN_AUX'] recebem o valor A DEFINIR.
+        2.2 - Se t_conectados['TIPO_ESTACAO_GEOPLAN'] for igual a geoplan['TIPO_ESTACAO_GEOPLAN_AUX'], nada é feito. Se houver divergência de nomeclatura/tipo com a base oficial GeoPlan ou com audit['TIPO_DE_PONTO 62_AUX'], a regra de prioridade de tipologia deve ser aplicada.
 
-    2.2 - Se t_conectados['TIPO_ESTACAO_GEOPLAN'] for igual a geoplan['TIPO_ESTACAO_GEOPLAN_AUX'], nada é feito. Se houver divergência de nomeclatura/tipo com a base oficial GeoPlan ou com audit['TIPO_DE_PONTO 62_AUX'], a regra de prioridade de tipologia deve ser aplicada.
+        2.3 - Se o valor em t_conectados['TIPO_ESTACAO_GEOPLAN'] for igual a A DEFINIR, ele deve assumir o valor auditado em audit['TIPO_DE_PONTO 62_AUX'].
 
-    2.3 - Se o valor em t_conectados['TIPO_ESTACAO_GEOPLAN'] for igual a A DEFINIR, ele deve assumir o valor auditado em audit['TIPO_DE_PONTO 62_AUX'].
-
-    2.4 - A automação deve cruzar as coordenadas (LATITUDE vs audit['LATITUDE 25_AUX'] e LONGITUDE vs audit['LONGITUDE 27_AUX']). Campos vazios ou divergentes na base principal recebem as coordenadas provindas da auditoria.
+        2.4 - A automação deve cruzar as coordenadas (LATITUDE vs audit['LATITUDE 25_AUX'] e LONGITUDE vs audit['LONGITUDE 27_AUX']). Campos vazios ou divergentes na base principal recebem as coordenadas provindas da auditoria.
 
     3 - Regras da base SisLic:
+        Atenção: sislic possui chaves repetidas em CODIGO_ER com status diferentes que não devem ser excluídas de imediato.
 
-    Atenção: sislic possui chaves repetidas em CODIGO_ER com status diferentes que não devem ser excluídas de imediato.
+        Caso encontre alguma chave com STATUS_SISLIC = APROVADO antes da comparação, exclui as outras duplicadas.
 
-    Antes da comparação:
+        Se não tiver APROVADO, busca EM ANÁLISE e exclui as duplicadas restantes.
 
-    Caso encontre alguma chave com STATUS_SISLIC = APROVADO, exclui as outras duplicadas.
+        3.1 - Se t_conectados['STATUS_SISLIC'] e sislic['STATUS_SISLIC_AUX'] forem iguais, nada é feito.
 
-    Se não tiver APROVADO, busca EM ANÁLISE e exclui as duplicadas restantes.
+        3.2 - Se t_conectados['STATUS_SISLIC'] for APROVADO e sislic['STATUS_SISLIC_AUX'] NÃO for APROVADO (ex: revogado), envia o registro para a tabela de validação de divergências.
 
-    3.1 - Se t_conectados['STATUS_SISLIC'] e sislic['STATUS_SISLIC_AUX'] forem iguais, nada é feito.
-
-    3.2 - Se t_conectados['STATUS_SISLIC'] for APROVADO e sislic['STATUS_SISLIC_AUX'] NÃO for APROVADO (ex: revogado), envia o registro para a tabela de validação de divergências.
-
-    3.3 - Se t_conectados['STATUS_SISLIC'] for diferente de APROVADO, atualiza-se substituindo o valor antigo de t_conectados pelo valor de sislic['STATUS_SISLIC_AUX'].
+        3.3 - Se t_conectados['STATUS_SISLIC'] for diferente de APROVADO, atualiza-se substituindo o valor antigo de t_conectados pelo valor de sislic['STATUS_SISLIC_AUX'].
 
     4 - Regras da base InfraGest:
+        4.1 - Se t_conectados['SISTEMA_ER'] for igual a CONECTADO e infragest['STATUS_INFRAGEST_AUX'] for igual a CONECTADO, nada é feito.
 
-    4.1 - Se t_conectados['SISTEMA_ER'] for igual a CONECTADO e infragest['STATUS_INFRAGEST_AUX'] for igual a CONECTADO, nada é feito.
+        4.2 - Se t_conectados['SISTEMA_ER'] estiver vazio, recebe o valor de infragest['STATUS_INFRAGEST_AUX'].
 
-    4.2 - Se t_conectados['SISTEMA_ER'] estiver vazio, recebe o valor de infragest['STATUS_INFRAGEST_AUX'].
+        4.3 - Se t_conectados['SISTEMA_ER'] for igual a CONECTADO e infragest['STATUS_INFRAGEST_AUX'] for diferente de CONECTADO, envia para validação de queda/desconexão.
 
-    4.3 - Se t_conectados['SISTEMA_ER'] for igual a CONECTADO e infragest['STATUS_INFRAGEST_AUX'] for diferente de CONECTADO, envia para validação de queda/desconexão.
-
-    4.4 - Se ambos (t_conectados['SISTEMA_ER'] e infragest['STATUS_INFRAGEST_AUX']) estiverem vazios, então t_conectados['SISTEMA_ER'] recebe INFRA NÃO CAPACITADA.
+        4.4 - Se ambos (t_conectados['SISTEMA_ER'] e infragest['STATUS_INFRAGEST_AUX']) estiverem vazios, então t_conectados['SISTEMA_ER'] recebe INFRA NÃO CAPACITADA.
 
     5 - Regras para classificação de ERs:
+        5.1 - Se t_conectados['STATUS E-MAIL'] estiver preenchido, mantém a informação de t_conectados['STATUS CONSOLIDADO'] atual.
 
-    5.1 - Se t_conectados['STATUS E-MAIL'] estiver preenchido, mantém a informação de t_conectados['STATUS CONSOLIDADO'] atual.
+        5.2 - Se geoplan['TIPO_ESTACAO_GEOPLAN_AUX'] for igual a SHOPPING ou SUPERMERCADO ou PONTO ECOLÓGICO, então t_conectados['STATUS CONSOLIDADO'] é igual a ESTAÇÕES SUSTENTÁVEIS (ENERGIA SOLAR).
 
-    5.2 - Se geoplan['TIPO_ESTACAO_GEOPLAN_AUX'] for igual a SHOPPING ou SUPERMERCADO ou PONTO ECOLÓGICO, então t_conectados['STATUS CONSOLIDADO'] é igual a ESTAÇÕES SUSTENTÁVEIS (ENERGIA SOLAR).
+        5.3 - Se o tipo for INTERNO, então STATUS CONSOLIDADO = CARREGADOR LENTO - INTERNO.
 
-    5.3 - Se o tipo for INTERNO, então STATUS CONSOLIDADO = CARREGADOR LENTO - INTERNO.
+        5.4 - Se o tipo for COBERTURA, então STATUS CONSOLIDADO = ESTAÇÃO EM COBERTURA.
 
-    5.4 - Se o tipo for COBERTURA, então STATUS CONSOLIDADO = ESTAÇÃO EM COBERTURA.
+        5.5 - Se o tipo for A DEFINIR, NOVO_TERRENO ou COMERCIAL E o licenciamento (sislic['STATUS_SISLIC_AUX']) for igual a APROVADO, então STATUS CONSOLIDADO = OPERACIONAL.
 
-    5.5 - Se o tipo for A DEFINIR, NOVO_TERRENO ou COMERCIAL E o licenciamento (sislic['STATUS_SISLIC_AUX']) for igual a APROVADO, então STATUS CONSOLIDADO = OPERACIONAL.
-
-    5.6 - Se o tipo for um dos acima E a licença for NÃO TEM LICENÇA ou PENDENTE INSTALAÇÃO, mantém os status atuais. Em campos vazios muda para SEM CONEXÃO DE REDE.
+        5.6 - Se o tipo for um dos acima E a licença for NÃO TEM LICENÇA ou PENDENTE INSTALAÇÃO, mantém os status atuais. Em campos vazios muda para SEM CONEXÃO DE REDE.
 
     6 - Regras da coluna STATUS_FATURAMENTO:
+        6.1 - Se t_conectados['STATUS CONSOLIDADO'] for OPERACIONAL e o sistema de infraestrutura atual (infragest['STATUS_INFRAGEST_AUX']) for CONECTADO ou PENDENTE ATIVAÇÃO, então STATUS_FATURAMENTO = 1.
 
-    6.1 - Se t_conectados['STATUS CONSOLIDADO'] for OPERACIONAL e o sistema de infraestrutura atual (infragest['STATUS_INFRAGEST_AUX']) for CONECTADO ou PENDENTE ATIVAÇÃO, então STATUS_FATURAMENTO = 1.
+        6.2 - Se STATUS CONSOLIDADO for OPERACIONAL e a infra for INFRA NÃO CAPACITADA, então STATUS_FATURAMENTO = 0.
 
-    6.2 - Se STATUS CONSOLIDADO for OPERACIONAL e a infra for INFRA NÃO CAPACITADA, então STATUS_FATURAMENTO = 0.
-
-    6.3 - Para qualquer caso que não bata com as duas condições anteriores, STATUS_FATURAMENTO = 2.
+        6.3 - Para qualquer caso que não bata com as duas condições anteriores, STATUS_FATURAMENTO = 2.
 
 💾 5. Outputs / Resultados
 Gerados automaticamente na pasta do projeto:
