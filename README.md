@@ -1,193 +1,180 @@
 📘 1. Visão Geral da Automação
-Esta automação realiza o processamento completo de bases relacionadas a Estações de Recarga (ERs) de veículos elétricos, consolidando informações de múltiplas fontes (Conectados Atual, Conectados Anterior, GeoPlan, AuditReport, SisLic e InfraGest), aplicando regras de negócio, detectando divergências e classificando as estações em diferentes categorias. O pipeline produz como resultado:
+    Esta automação realiza o processamento completo de bases relacionadas a Estações de Recarga (ERs) de veículos elétricos, consolidando informações de múltiplas fontes (Conectados Atual, Conectados Anterior, GeoPlan, AuditReport, SisLic e InfraGest), aplicando regras de negócio, detectando divergências e classificando as estações em diferentes categorias. O pipeline produz como resultado:
 
-Base t_conectados consolidada e classificada de Estações de Recarga (ERs)
+    Base t_conectados consolidada e classificada de Estações de Recarga (ERs)
 
-Arquivos Excel exportáveis
+    Arquivos Excel exportáveis
 
-Tabela de divergências para revisão da equipe de engenharia
+    Tabela de divergências para revisão da equipe de engenharia
 
-Interface Web (Django) com Dashboard interativo de métricas estratégicas
+    Interface Web (Django) com Dashboard interativo de métricas estratégicas
 
-🎯 Objetivo Geral
-Centralizar e automatizar o tratamento de dados para identificar:
+    🎯 Objetivo Geral
+        Centralizar e automatizar o tratamento de dados para identificar:
 
-ERs operacionais e prontas para uso
+        ERs operacionais e prontas para uso
 
-ERs com problemas de viabilidade (quebra)
+        ERs com problemas de viabilidade (quebra)
 
-Divergências de cadastro entre os sistemas da empresa (histórico vs. atual)
+        Divergências de cadastro entre os sistemas da empresa (histórico vs. atual)
 
-Status de faturamento/uso
+        Status de faturamento/uso
 
-Classificação técnica e de infraestrutura
+        Classificação técnica e de infraestrutura
 
-Exportação de arquivos finais e gravação de dados no banco MySQL
+        Exportação de arquivos finais e gravação de dados no banco MySQL
 
-🧩 Problema que resolve
+        🧩 Problema que resolve
 
-Divergências entre bases de dados internas de diferentes setores
+        Divergências entre bases de dados internas de diferentes setores
 
-Falta de padronização e inconsistências no cadastro de novos pontos
+        Falta de padronização e inconsistências no cadastro de novos pontos
 
-Classificação de viabilidade feita de forma manual e suscetível a erros
+        Classificação de viabilidade feita de forma manual e suscetível a erros
 
-Processamento repetitivo, demorado e que consumia horas da equipe
+        Processamento repetitivo, demorado e que consumia horas da equipe
 
-🖥️ Onde roda
+        🖥️ Onde roda
 
-Interface: Django (Fullstack Web)
+        Interface: Django (Fullstack Web)
 
-Processamento: Python (Pandas/Backend)
+        Processamento: Python (Pandas/Backend)
 
-Armazenamento: MySQL
+        Armazenamento: MySQL
 
-Execução: Container Docker (docker-compose)
+        Execução: Container Docker (docker-compose)
 
-👥 Público-alvo
+        👥 Público-alvo
 
-Times de Engenharia de Infraestrutura
+        Times de Engenharia de Infraestrutura
 
-Arquitetura de Expansão
+        Arquitetura de Expansão
 
-Operações B2B
+        Operações B2B
 
-Gestores de Projeto
+        Gestores de Projeto
 
 📁 2. Arquitetura / Fluxo Geral
 
-Coleta (Upload dos arquivos via Interface Django)
+    Coleta (Upload dos arquivos via Interface Django)
 
-⬇ Cruzamento Inicial (Conectados Atual x Conectados Anterior)
+    ⬇ Cruzamento Inicial (Conectados Atual x Conectados Anterior)
 
-⬇ Padronização de colunas
+    ⬇ Padronização de colunas
 
-⬇ Limpeza e normalização
+    ⬇ Limpeza e normalização
 
-⬇ Deduplicação (Tratamento de duplicidades no SisLic)
+    ⬇ Deduplicação (Tratamento de duplicidades no SisLic)
 
-⬇ Cruzamentos (Base Inicial x GeoPlan x AuditReport x SisLic x InfraGest) (Geração programática dos sufixos _AUX para as bases fontes)
+    ⬇ Cruzamentos (Base Inicial x GeoPlan x AuditReport x SisLic x InfraGest) (Geração programática dos sufixos _AUX para as bases fontes)
 
-⬇ Tratamentos específicos por fonte de dados
+    ⬇ Tratamentos específicos por fonte de dados
 
-⬇ Detecção de divergências
+    ⬇ Detecção de divergências
 
-⬇ Classificação STATUS CONSOLIDADO
+    ⬇ Classificação STATUS CONSOLIDADO
 
-⬇ Cálculo STATUS_FATURAMENTO
+    ⬇ Cálculo STATUS_FATURAMENTO
 
-⬇ Exportação (Excel e Banco MySQL)
+    ⬇ Exportação (Excel e Banco MySQL)
 
-⬇ Dashboard (KPIs e gráficos renderizados no Django)
+    ⬇ Dashboard (KPIs e gráficos renderizados no Django)
 
-Dependências entre módulos
+    Dependências entre módulos
 
-main.py -> orquestra o pipeline de dados
+    main.py -> orquestra o pipeline de dados
 
-utils.py -> ferramentas genéricas (limpeza de texto, padronização)
+    utils.py -> ferramentas genéricas (limpeza de texto, padronização)
 
-conexao_banco.py -> exportação MySQL (SQLAlchemy)
+    conexao_banco.py -> exportação MySQL (SQLAlchemy)
 
-views.py / templates -> roteamento web e renderização visual (Django)
+    views.py / templates -> roteamento web e renderização visual (Django)
 
-dashboard.py -> geração de gráficos (Plotly) integrados ao template HTML
+    dashboard.py -> geração de gráficos (Plotly) integrados ao template HTML
 
-dados_dashboard.py -> funções de cálculo de métricas
+    dados_dashboard.py -> funções de cálculo de métricas
 
 🗂️ 3. Fontes de Dados e Chaves de Cruzamento
 
-CONECTADOS ATUAL:
+    CONECTADOS ATUAL:
 
-Origem: Arquivo Excel t_conectados_atual.xlsx
+    Origem: Arquivo Excel t_conectados_atual.xlsx
 
-Campos usados: ID_ESTACAO atua como chave mestre do mês.
+    Campos usados: ID_ESTACAO atua como chave mestre do mês.
 
-CONECTADOS ANTERIOR:
+    CONECTADOS ANTERIOR:
 
-Origem: Arquivo Excel t_conectados_anterior.xlsx
+    Origem: Arquivo Excel t_conectados_anterior.xlsx
 
-Campos de Validação: ID_ESTACAO, STATUS CONSOLIDADO, CHECKS, MES_REFERENCIA, STATUS E-MAIL, STATUS_SISLIC, TIPO_ESTACAO_GEOPLAN, SISTEMA_ER, TIPO_DE_PONTO 62, LATITUDE, LONGITUDE.
+    Campos de Validação: ID_ESTACAO, STATUS CONSOLIDADO, CHECKS, MES_REFERENCIA, STATUS E-MAIL, STATUS_SISLIC, TIPO_ESTACAO_GEOPLAN, SISTEMA_ER, TIPO_DE_PONTO 62, LATITUDE, LONGITUDE.
 
-GEOPLAN:
+    GEOPLAN:
 
-Origem: Arquivo Excel GeoPlan.xlsx
+    Origem: Arquivo Excel GeoPlan.xlsx
 
-Campos usados: ID_ESTACAO, TIPO_ESTACAO_GEOPLAN
+    Campos usados: ID_ESTACAO, TIPO_ESTACAO_GEOPLAN
 
-AUDIT_REPORT:
+    AUDIT_REPORT:
 
-Origem: Arquivo Excel AuditReport.xlsx (Múltiplas abas: Lote_1, Lote_2)
+    Origem: Arquivo Excel AuditReport.xlsx (Múltiplas abas: Lote_1, Lote_2)
 
-Campos usados: CODIGO_ER 1 (Chave), TIPO_DE_PONTO 62, LATITUDE 25, LONGITUDE 27.
+    Campos usados: CODIGO_ER 1 (Chave), TIPO_DE_PONTO 62, LATITUDE 25, LONGITUDE 27.
 
-SISLIC (Licenciamento):
+    SISLIC (Licenciamento):
 
-Origem: Arquivo Excel SisLic.xlsx
+    Origem: Arquivo Excel SisLic.xlsx
 
-Campos usados: CODIGO_ER (Chave), STATUS_SISLIC
+    Campos usados: CODIGO_ER (Chave), STATUS_SISLIC
 
-INFRAGEST:
+    INFRAGEST:
 
-Origem: Arquivo Excel InfraGest.xlsx
+    Origem: Arquivo Excel InfraGest.xlsx
 
-Campos usados: PONTO_ER (Chave), STATUS_INFRAGEST
+    Campos usados: PONTO_ER (Chave), STATUS_INFRAGEST
 
 🪄 4. Regras de Transformação e Limpeza
     1 - Regras de Cruzamento Inicial (Bases de Conectados):
-        1.1 - A base conectados_atual é importada e sofre filtro onde apenas conectados_atual['ID_ESTACAO'] atua como mestre.
+        1.1 - A base conectados_atual é importada e sofre filtro onde apenas [ID_ESTACAO] atua como mestre
+        1.2 - Os valores de conectados_anterior são trazidos apenas para as chaves de [ID_ESTACAO] que existirem na base atual. Chaves novas recebem valores vazios para posterior classificação
 
-        1.2 - Os valores de conectados_anterior são trazidos (Left Join) apenas para as chaves de ID_ESTACAO que existirem na base atual. Chaves novas recebem valores vazios para posterior classificação.
+    2 - Regras da base GeoPlan:
+        2.1 - Todos os valores nulos em [AUX_TIPO_ESTACAO_GEOPLAN] recebem o valor A DEFINIR
+        2.2 - Se o valor na coluna [TIPO_ESTACAO_GEOPLAN] e [AUX_TIPO_ESTACAO_GEOPLAN] tiverem o mesmo valor, nada é feito
+        2.3 - Se o valor na coluna [TIPO_ESTACAO_GEOPLAN] for igual a A DEFINIR, mas não em [AUX_TIPO_ESTACAO_GEOPLAN], então [TIPO_ESTACAO_GEOPLAN] é igual a [AUX_TIPO_ESTACAO_GEOPLAN]
 
-    2 - Regras da base GeoPlan e AuditReport:
-        2.1 - Todos os valores nulos em geoplan['TIPO_ESTACAO_GEOPLAN_AUX'] recebem o valor A DEFINIR.
+    3 - Regras da base AuditReport:
+        3.1 - Se o valor na coluna [TIPO_ESTACAO_GEOPLAN] e [AUX_TIPO_DE_PONTO 62] tiverem o mesmo valor, nada é feito
+        3.2 - Se o valor na coluna [TIPO_ESTACAO_GEOPLAN] for igual a A DEFINIR, mas não em [AUX_TIPO_DE_PONTO 62], então [TIPO_ESTACAO_GEOPLAN] é igual a [AUX_TIPO_DE_PONTO 62]
+        3.3 - Mantém os valores de [AUX_LATITUDE 25] e [AUX_LONGITUDE 27] e o que estiver vazio nas colunas originais de coordenadas recebe os valores provindos da auditoria
 
-        2.2 - Se t_conectados['TIPO_ESTACAO_GEOPLAN'] for igual a geoplan['TIPO_ESTACAO_GEOPLAN_AUX'], nada é feito. Se houver divergência de nomeclatura/tipo com a base oficial GeoPlan ou com audit['TIPO_DE_PONTO 62_AUX'], a regra de prioridade de tipologia deve ser aplicada.
+    4 - Regras da base SisLic:
+        ** SisLic possui chaves repetidas em [CODIGO_ER] com status diferentes. Não devem ser excluídas de imediato
+        Antes da comparação:
+            caso encontre alguma chave com Status = APROVADO, então exclui outras chaves duplicadas
+            se não tiver APROVADO busca EM ANÁLISE e exclui chaves duplicadas
 
-        2.3 - Se o valor em t_conectados['TIPO_ESTACAO_GEOPLAN'] for igual a A DEFINIR, ele deve assumir o valor auditado em audit['TIPO_DE_PONTO 62_AUX'].
+        4.1 - Se o valor na coluna [STATUS_SISLIC] e [AUX_STATUS_SISLIC] forem iguais, então não faz nada
+        4.2 - Se o valor na coluna [STATUS_SISLIC] for igual a APROVADO e [AUX_STATUS_SISLIC] não for APROVADO, então enviar para tabela de validação
+        4.3 - Se o valor na coluna [STATUS_SISLIC] for diferente de APROVADO, então substitui o valor de [STATUS_SISLIC] pelo valor de [AUX_STATUS_SISLIC]
 
-        2.4 - A automação deve cruzar as coordenadas (LATITUDE vs audit['LATITUDE 25_AUX'] e LONGITUDE vs audit['LONGITUDE 27_AUX']). Campos vazios ou divergentes na base principal recebem as coordenadas provindas da auditoria.
+    5 - Regras da base InfraGest:
+        5.1 - Se o valor na coluna [SISTEMA_ER] for igual a CONECTADO e [AUX_STATUS_INFRAGEST] for igual a CONECTADO, então nada é feito
+        5.2 - Se o valor na coluna [SISTEMA_ER] estiver vazio, ele recebe o valor de [AUX_STATUS_INFRAGEST]
+        5.3 - Se o valor na coluna [SISTEMA_ER] for igual a CONECTADO e [AUX_STATUS_INFRAGEST] for diferente de CONECTADO, então é enviado para validação
+        5.4 - Se o valor na coluna [SISTEMA_ER] estiver vazio e o valor de [AUX_STATUS_INFRAGEST] também, então [SISTEMA_ER] é igual a INFRA NÃO CAPACITADA
 
-    3 - Regras da base SisLic:
-        Atenção: sislic possui chaves repetidas em CODIGO_ER com status diferentes que não devem ser excluídas de imediato.
+    6 - Regras para classificação de ERs:
+        6.1 - Se o valor na coluna [STATUS E-MAIL] estiver preenchido mantém a informação do [STATUS CONSOLIDADO] atual
+        6.2 - Se o valor na coluna [AUX_TIPO_ESTACAO_GEOPLAN] for igual a SHOPPING ou SUPERMERCADO ou PONTO ECOLÓGICO, então [STATUS CONSOLIDADO] é igual a ESTAÇÕES SUSTENTÁVEIS (ENERGIA SOLAR)
+        6.3 - Se o valor na coluna [AUX_TIPO_ESTACAO_GEOPLAN] for igual a INTERNO, então [STATUS CONSOLIDADO] é igual a CARREGADOR LENTO - INTERNO
+        6.4 - Se o valor na coluna [AUX_TIPO_ESTACAO_GEOPLAN] for igual a COBERTURA, então [STATUS CONSOLIDADO] é igual a ESTAÇÃO EM COBERTURA
+        6.5 - Se o valor na coluna [AUX_TIPO_ESTACAO_GEOPLAN] for igual a A DEFINIR ou NOVO_TERRENO ou COMERCIAL e [AUX_STATUS_SISLIC] for igual a APROVADO, então [STATUS CONSOLIDADO] é igual a OPERACIONAL
+        6.6 - Se o valor na coluna [AUX_TIPO_ESTACAO_GEOPLAN] for igual a A DEFINIR ou NOVO_TERRENO ou COMERCIAL e [AUX_STATUS_SISLIC] for igual a NÃO TEM LICENÇA ou PENDENTE INSTALAÇÃO, mantém os status atuais e nos campos vazios mudar para "SEM CONEXÃO DE REDE"
 
-        Caso encontre alguma chave com STATUS_SISLIC = APROVADO antes da comparação, exclui as outras duplicadas.
-
-        Se não tiver APROVADO, busca EM ANÁLISE e exclui as duplicadas restantes.
-
-        3.1 - Se t_conectados['STATUS_SISLIC'] e sislic['STATUS_SISLIC_AUX'] forem iguais, nada é feito.
-
-        3.2 - Se t_conectados['STATUS_SISLIC'] for APROVADO e sislic['STATUS_SISLIC_AUX'] NÃO for APROVADO (ex: revogado), envia o registro para a tabela de validação de divergências.
-
-        3.3 - Se t_conectados['STATUS_SISLIC'] for diferente de APROVADO, atualiza-se substituindo o valor antigo de t_conectados pelo valor de sislic['STATUS_SISLIC_AUX'].
-
-    4 - Regras da base InfraGest:
-        4.1 - Se t_conectados['SISTEMA_ER'] for igual a CONECTADO e infragest['STATUS_INFRAGEST_AUX'] for igual a CONECTADO, nada é feito.
-
-        4.2 - Se t_conectados['SISTEMA_ER'] estiver vazio, recebe o valor de infragest['STATUS_INFRAGEST_AUX'].
-
-        4.3 - Se t_conectados['SISTEMA_ER'] for igual a CONECTADO e infragest['STATUS_INFRAGEST_AUX'] for diferente de CONECTADO, envia para validação de queda/desconexão.
-
-        4.4 - Se ambos (t_conectados['SISTEMA_ER'] e infragest['STATUS_INFRAGEST_AUX']) estiverem vazios, então t_conectados['SISTEMA_ER'] recebe INFRA NÃO CAPACITADA.
-
-    5 - Regras para classificação de ERs:
-        5.1 - Se t_conectados['STATUS E-MAIL'] estiver preenchido, mantém a informação de t_conectados['STATUS CONSOLIDADO'] atual.
-
-        5.2 - Se geoplan['TIPO_ESTACAO_GEOPLAN_AUX'] for igual a SHOPPING ou SUPERMERCADO ou PONTO ECOLÓGICO, então t_conectados['STATUS CONSOLIDADO'] é igual a ESTAÇÕES SUSTENTÁVEIS (ENERGIA SOLAR).
-
-        5.3 - Se o tipo for INTERNO, então STATUS CONSOLIDADO = CARREGADOR LENTO - INTERNO.
-
-        5.4 - Se o tipo for COBERTURA, então STATUS CONSOLIDADO = ESTAÇÃO EM COBERTURA.
-
-        5.5 - Se o tipo for A DEFINIR, NOVO_TERRENO ou COMERCIAL E o licenciamento (sislic['STATUS_SISLIC_AUX']) for igual a APROVADO, então STATUS CONSOLIDADO = OPERACIONAL.
-
-        5.6 - Se o tipo for um dos acima E a licença for NÃO TEM LICENÇA ou PENDENTE INSTALAÇÃO, mantém os status atuais. Em campos vazios muda para SEM CONEXÃO DE REDE.
-
-    6 - Regras da coluna STATUS_FATURAMENTO:
-        6.1 - Se t_conectados['STATUS CONSOLIDADO'] for OPERACIONAL e o sistema de infraestrutura atual (infragest['STATUS_INFRAGEST_AUX']) for CONECTADO ou PENDENTE ATIVAÇÃO, então STATUS_FATURAMENTO = 1.
-
-        6.2 - Se STATUS CONSOLIDADO for OPERACIONAL e a infra for INFRA NÃO CAPACITADA, então STATUS_FATURAMENTO = 0.
-
-        6.3 - Para qualquer caso que não bata com as duas condições anteriores, STATUS_FATURAMENTO = 2.
+    7 - Regras da coluna STATUS_FATURAMENTO:
+        7.1 - Se o valor na coluna [STATUS CONSOLIDADO] for igual a OPERACIONAL e [AUX_STATUS_INFRAGEST] for igual a CONECTADO ou PENDENTE ATIVAÇÃO, então [STATUS_FATURAMENTO] é igual a 1
+        7.2 - Se o valor na coluna [STATUS CONSOLIDADO] for igual a OPERACIONAL e [AUX_STATUS_INFRAGEST] for igual a INFRA NÃO CAPACITADA, então [STATUS_FATURAMENTO] é igual a 0
+        7.3 - Para qualquer caso que não bata com as duas condições anteriores, [STATUS_FATURAMENTO] é igual a 2
 
 💾 5. Outputs / Resultados
 Gerados automaticamente na pasta do projeto:
