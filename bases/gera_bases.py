@@ -1,242 +1,193 @@
 import pandas as pd
 import numpy as np
 import os
+from datetime import datetime, timedelta
+import random
 
-# ==============================
+# -----------------------------
 # CONFIG
-# ==============================
-BASE_PATH = 'bases'
-QTD = 85000
+# -----------------------------
+N_REGISTROS = 90000
+OUTPUT_DIR = "bases"
 
-# ==============================
-# DOMÍNIOS (EXPANDIDOS)
-# ==============================
-def expandir_dominios(lista):
-    extras = [f"{item}_ALT" for item in lista]
-    return lista + extras
-
-DOM_TIPOS = expandir_dominios([
-    'SHOPPING', 'SUPERMERCADO', 'PONTO ECOLOGICO', 'INTERNO',
-    'COBERTURA', 'A DEFINIR', 'NOVO_TERRENO', 'COMERCIAL'
-])
-
-DOM_SISLIC = expandir_dominios([
-    'APROVADO', 'EM ANALISE', 'NAO TEM LICENCA', 'PENDENTE INSTALACAO'
-])
-
-DOM_INFRA = expandir_dominios([
-    'CONECTADO', 'PENDENTE ATIVACAO', 'INFRA NAO CAPACITADA', 'ERRO_LEITURA'
-])
-
-REGIONAIS = ['SP1', 'SP2', 'RJ1', 'MG1', 'SUL1']
-
-VENDORS = [
-    'ERICSSON', 'HUAWEI', 'NOKIA', 'SIEMENS',
-    'ZTE', 'CISCO', 'INTELBRAS'
+TIPOS_ESTACAO = [
+    "INTERNO", "SHOPPING", "SUPERMERCADO",
+    "COBERTURA", "A DEFINIR", "NOVO_TERRENO", "COMERCIAL"
 ]
 
-RESPONSAVEIS = [
-    'EQUIPE_SP', 'EQUIPE_RJ', 'EQUIPE_MG',
-    'PMO_NACIONAL', 'TIME_FIELD'
+STATUS_SISLIC = ["APROVADO", "EM ANÁLISE", "NÃO TEM LICENÇA", "PENDENTE INSTALAÇÃO"]
+STATUS_INFRAGEST = ["CONECTADO", "NÃO CONECTADO", None]
+
+STATUS_CONSOLIDADO = [
+    "OPERACIONAL",
+    "ESTAÇÃO EM COBERTURA",
+    "SEM CONEXÃO DE REDE",
+    "ALTO CUSTO - OBRAS",
+    "CARREGADOR LENTO - INTERNO"
 ]
 
-# ==============================
-# UTILS
-# ==============================
-def garantir_pasta():
-    if not os.path.exists(BASE_PATH):
-        os.makedirs(BASE_PATH)
+# -----------------------------
+# HELPERS
+# -----------------------------
+def gerar_ids(n):
+    return [f"EV-{i}" for i in range(10000, 10000 + n)]
 
+def gerar_coordenadas(n, confiavel=False):
+    if confiavel:
+        return (
+            np.random.uniform(-24, -23, n),  # SP latitude
+            np.random.uniform(-47, -46, n)
+        )
+    else:
+        lat = np.random.choice(
+            [None, 0, *np.random.uniform(-24, -23, 10)],
+            size=n
+        )
+        lon = np.random.choice(
+            [None, 0, *np.random.uniform(-47, -46, 10)],
+            size=n
+        )
+        return lat, lon
 
-def gerar_ids(qtd):
-    return [f"EV-{i}" for i in range(10000, 10000 + qtd)]
+def random_dates(n):
+    base = datetime.today()
+    return [base - timedelta(days=random.randint(0, 365)) for _ in range(n)]
 
-
-def gerar_lat_long(qtd):
-    lat = np.random.uniform(-23.9, -23.1, qtd)
-    long = np.random.uniform(-46.9, -46.1, qtd)
-
-    mask = np.random.choice([True, False], qtd, p=[0.8, 0.2])
-
-    lat = np.where(mask, lat, 0.0)
-    long = np.where(mask, long, 0.0)
-
-    return lat, long
-
-
-# ==============================
-# 1. BASE MESTRE
-# ==============================
-def criar_base_mestre(pool_ids):
+# -----------------------------
+# BASE 1 - ATUAL
+# -----------------------------
+def gerar_conectados_atual(ids):
     df = pd.DataFrame({
-        'ID_ESTACAO': pool_ids,
-        'DATA_CARGA': '28/03/2026',
-        'SISTEMA_ORIGEM': 'SAP_PRODUCAO',
-        'PROJETO_NOME': np.random.choice([
-            'EXPANSAO_LOTE_A', 'REMANEJAMENTO_2026', 'BACKLOG_VIVO'
-        ], QTD),
-        'REGIONAL_SITE': np.random.choice(REGIONAIS, QTD),
-        'COD_PATRIMONIO': [f"PAT-{np.random.randint(100000, 999999)}" for _ in range(QTD)],
-        'RESPONSAVEL_PMO': np.random.choice(RESPONSAVEIS, QTD),
-        'NIVEL_PRIORIDADE': np.random.choice([1, 2, 3], QTD, p=[0.5, 0.3, 0.2]),
-        'ESTADO_ATIVO': np.random.choice(['ATIVO', 'INATIVO', 'MANUTENCAO'], QTD, p=[0.7, 0.1, 0.2]),
-        'DATA_ENTRADA_SISTEMA': '01/01/2026'
+        "ID_ESTACAO": ids,
+        "STATUS E-MAIL": np.random.choice([None, "OK", "PENDENTE"], len(ids)),
+        "STATUS CONSOLIDADO": np.random.choice(STATUS_CONSOLIDADO, len(ids)),
+        "SISTEMA_ORIGEM": np.random.choice(["SAP", "CRM", "LEGADO"], len(ids)),
+        "DATA_CARGA": random_dates(len(ids))
     })
+    return df
 
-    df.to_excel(f'{BASE_PATH}/t_conectados_atual.xlsx', index=False)
+# -----------------------------
+# BASE 2 - ANTERIOR
+# -----------------------------
+def gerar_conectados_anterior(ids):
+    ids_subset = np.random.choice(ids, int(len(ids) * 0.8), replace=False)
 
-
-# ==============================
-# 2. BASE ANTERIOR
-# ==============================
-def criar_base_anterior(pool_ids):
-    lat, long = gerar_lat_long(80000)
+    lat, lon = gerar_coordenadas(len(ids_subset), confiavel=False)
 
     df = pd.DataFrame({
-        'ID_ESTACAO': pool_ids[:80000],
-        'TIPO_ESTACAO_GEOPLAN': np.random.choice(DOM_TIPOS, 80000),
-        'LATITUDE': lat,
-        'LONGITUDE': long,
-        'STATUS_SISLIC': np.random.choice(DOM_SISLIC, 80000),
-        'SISTEMA_ER': np.random.choice(['CONECTADO', 'DESCONECTADO', 'DESCONHECIDO'], 80000),
-        'STATUS_EMAIL': np.random.choice(['FINALIZADO', 'PENDENTE'], 80000, p=[0.3, 0.7]),
-        'STATUS_CONSOLIDADO': 'A_CLASSIFICAR',
-        'COORD_X_SIG': np.random.uniform(1000, 2000, 80000),
-        'VERSAO_BASE': 'V_2025_FINAL',
-        'EQUIPAMENTO_HW': np.random.choice(VENDORS, 80000),
-        'ULTIMO_LOGIN_TECNICO': 'ADMIN_SISTEMA',
-        'FLAG_HISTORICO': 1,
-        'OBSERVACOES_MIGRACAO': 'MIGRADO',
-        'REDE_TRANSMISSAO': np.random.choice(['MW_RADIO', 'FIBRA', 'SATELITE'], 80000),
-        'CAPACIDADE_MW': np.random.choice(['1Gbps', '2Gbps', '10Gbps'], 80000)
+        "ID_ESTACAO": ids_subset,
+        "STATUS CONSOLIDADO": np.random.choice(STATUS_CONSOLIDADO, len(ids_subset)),
+        "STATUS E-MAIL": np.random.choice([None, "OK", "ERRO"], len(ids_subset)),
+        "STATUS_SISLIC": np.random.choice(STATUS_SISLIC, len(ids_subset)),
+        "SISTEMA_ER": np.random.choice(["CONECTADO", None], len(ids_subset)),
+        "TIPO_ESTACAO_GEOPLAN": np.random.choice(TIPOS_ESTACAO + [None], len(ids_subset)),
+        "TIPO_DE_PONTO 62": np.random.choice(TIPOS_ESTACAO + [None], len(ids_subset)),
+        "LATITUDE": lat,
+        "LONGITUDE": lon,
+        "CHECKS": np.random.choice([None, "OK", "PENDENTE"], len(ids_subset)),
+        "MES_REFERENCIA": np.random.choice(["01/2025", "02/2025", "03/2025"], len(ids_subset))
     })
 
-    df.to_excel(f'{BASE_PATH}/t_conectados_anterior.xlsx', index=False)
+    return df
 
-
-# ==============================
-# 3. GEOPLAN
-# ==============================
-def criar_geoplan(pool_ids):
-    df = pd.DataFrame({
-        'ID_ESTACAO': pool_ids[:70000],
-        'TIPO_ESTACAO_GEOPLAN': np.random.choice(DOM_TIPOS, 70000),
-        'AUX_COORDENADOR': np.random.choice(['MARCOS', 'ANA', 'JOAO', 'CARLA'], 70000),
-        'ENDERECO_LOGRADOURO': 'RUA SIMULADA',
-        'BAIRRO_SIG': np.random.choice(['CENTRO', 'ZONA_SUL', 'ZONA_NORTE'], 70000),
-        'ZONA_COORDENACAO': np.random.choice(['NORTE', 'SUL', 'LESTE', 'OESTE'], 70000),
-        'COD_GEO_REFERENCIA': [f"GEO-{i}" for i in range(70000)],
-        'METRAGEM_ESTIMADA': np.random.choice([30, 50, 70, 100], 70000),
-        'TIPO_CONTRATO': np.random.choice(['LOCACAO', 'PROPRIO'], 70000),
-        'DATA_PLAN_GEO': '15/02/2026'
-    })
-
-    df.to_excel(f'{BASE_PATH}/GeoPlan.xlsx', index=False)
-
-
-# ==============================
-# 4. AUDITORIA
-# ==============================
-def criar_audit(pool_ids):
-    lat, long = gerar_lat_long(75000)
+# -----------------------------
+# BASE 3 - GEOPLAN
+# -----------------------------
+def gerar_geoplan(ids):
+    ids_subset = np.random.choice(ids, int(len(ids) * 0.7), replace=False)
 
     df = pd.DataFrame({
-        'CODIGO_ER 1': pool_ids[:75000],
-        'TIPO_DE_PONTO 62': np.random.choice(DOM_TIPOS, 75000),
-        'LATITUDE 25': lat,
-        'LONGITUDE 27': long,
-        'ALTURA_ANTENA': np.random.choice([20, 30, 40], 75000),
-        'OBSTR_VISUAL': np.random.choice(['SIM', 'NAO'], 75000),
-        'TECNICO_CAMPO': np.random.choice(['JOAO', 'CARLOS', 'PEDRO'], 75000),
-        'STATUS_LAUDO': np.random.choice(['APROVADO', 'REPROVADO'], 75000),
-        'DATA_INSPECAO': '20/03/2026',
-        'TIPO_SUPORTE': np.random.choice(['GREENFIELD', 'ROOFTOP'], 75000),
-        'POTENCIA_LIDA_DBM': np.random.randint(-80, -50, 75000)
+        "ID_ESTACAO": ids_subset,
+        "TIPO_ESTACAO_GEOPLAN": np.random.choice(TIPOS_ESTACAO + [None], len(ids_subset))
     })
 
-    with pd.ExcelWriter(f'{BASE_PATH}/AuditReport.xlsx') as writer:
-        df.to_excel(writer, sheet_name='INSPECAO', index=False)
+    return df
 
+# -----------------------------
+# BASE 4 - AUDIT REPORT
+# -----------------------------
+def gerar_audit(ids):
+    ids_subset = np.random.choice(ids, int(len(ids) * 0.6), replace=False)
 
-# ==============================
-# 5. SISLIC (CORRIGIDO)
-# ==============================
-def criar_sislic(pool_ids):
-    ids_final = []
-    status_final = []
-
-    ids_base = pool_ids[:60000]
-
-    for id_ in ids_base:
-        # obrigatório
-        ids_final.append(id_)
-        status_final.append('EM ANALISE')
-
-        # chance de aprovado
-        if np.random.rand() < 0.4:
-            ids_final.append(id_)
-            status_final.append('APROVADO')
-
-        # outros status
-        outros = [
-            s for s in DOM_SISLIC
-            if 'EM ANALISE' not in s and 'APROVADO' not in s
-        ]
-
-        qtd_extras = np.random.randint(0, 3)
-
-        for _ in range(qtd_extras):
-            ids_final.append(id_)
-            status_final.append(np.random.choice(outros))
-
-    total = len(ids_final)
+    lat, lon = gerar_coordenadas(len(ids_subset), confiavel=True)
 
     df = pd.DataFrame({
-        'CODIGO_ER': ids_final,
-        'STATUS_SISLIC': status_final,
-        'VENCIMENTO_ALVARA': '2028-12-31',
-        'NUM_PROCESSO': [f"PROC-{np.random.randint(1000,9999)}" for _ in range(total)],
-        'ORGAO_REGULADOR': np.random.choice(['ANATEL', 'PREFEITURA'], total),
-        'ANALISTA_RESP': np.random.choice(['ANA', 'BRUNO', 'CARLA'], total),
-        'PRIORIDADE_LEGAL': np.random.choice(['ALTA', 'MEDIA', 'BAIXA'], total)
+        "CODIGO_ER 1": ids_subset,
+        "TIPO_DE_PONTO 62": np.random.choice(TIPOS_ESTACAO, len(ids_subset)),
+        "LATITUDE 25": lat,
+        "LONGITUDE 27": lon
     })
 
-    df.to_excel(f'{BASE_PATH}/SisLic.xlsx', index=False)
+    return df
 
+# -----------------------------
+# BASE 5 - SISLIC (COM DUPLICIDADE)
+# -----------------------------
+def gerar_sislic(ids):
+    registros = []
 
-# ==============================
-# 6. INFRA
-# ==============================
-def criar_infra(pool_ids):
+    for id_ in ids:
+        n_linhas = np.random.choice([1, 2, 3])
+
+        statuses = np.random.choice(STATUS_SISLIC, n_linhas)
+
+        for s in statuses:
+            registros.append({
+                "CODIGO_ER": id_,
+                "STATUS_SISLIC": s
+            })
+
+    return pd.DataFrame(registros)
+
+# -----------------------------
+# BASE 6 - INFRAGEST
+# -----------------------------
+def gerar_infratest(ids):
+    ids_subset = np.random.choice(ids, int(len(ids) * 0.75), replace=False)
+
     df = pd.DataFrame({
-        'PONTO_ER': pool_ids[:82000],
-        'STATUS_INFRAGEST': np.random.choice(DOM_INFRA, 82000),
-        'TIPO_CONEXAO': np.random.choice(['FIBRA', 'RADIO', 'SATELITE'], 82000),
-        'MODEM_SERIAL': [f"SN-{np.random.randint(10000,99999)}" for _ in range(82000)],
-        'CAPACIDADE_PORTA': np.random.choice(['1G', '10G'], 82000),
-        'FABRICANTE_ONT': np.random.choice(VENDORS, 82000),
-        'ESTADO_FONTE_ENERGIA': np.random.choice(['NORMAL', 'FALHA'], 82000)
+        "PONTO_ER": ids_subset,
+        "STATUS_INFRAGEST": np.random.choice(STATUS_INFRAGEST, len(ids_subset))
     })
 
-    df.to_excel(f'{BASE_PATH}/InfraGest.xlsx', index=False)
+    return df
 
+# -----------------------------
+# EXPORTAÇÃO
+# -----------------------------
+def salvar_excel(df, nome):
+    path = os.path.join(OUTPUT_DIR, nome)
+    df.to_excel(path, index=False)
 
-# ==============================
+# -----------------------------
 # MAIN
-# ==============================
+# -----------------------------
 def main():
-    garantir_pasta()
-    pool_ids = gerar_ids(QTD)
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
 
-    criar_base_mestre(pool_ids)
-    criar_base_anterior(pool_ids)
-    criar_geoplan(pool_ids)
-    criar_audit(pool_ids)
-    criar_sislic(pool_ids)
-    criar_infra(pool_ids)
+    print("Gerando IDs...")
+    ids = gerar_ids(N_REGISTROS)
 
-    print("✅ Mockup realista gerado com sucesso!")
+    print("Gerando bases...")
 
+    atual = gerar_conectados_atual(ids)
+    anterior = gerar_conectados_anterior(ids)
+    geoplan = gerar_geoplan(ids)
+    audit = gerar_audit(ids)
+    sislic = gerar_sislic(ids)
+    infragest = gerar_infratest(ids)
 
-if __name__ == '__main__':
+    print("Salvando arquivos...")
+
+    salvar_excel(atual, "t_conectados_atual.xlsx")
+    salvar_excel(anterior, "t_conectados_anterior.xlsx")
+    salvar_excel(geoplan, "GeoPlan.xlsx")
+    salvar_excel(audit, "AuditReport.xlsx")
+    salvar_excel(sislic, "SisLic.xlsx")
+    salvar_excel(infragest, "InfraGest.xlsx")
+
+    print("✅ Bases geradas com sucesso!")
+
+if __name__ == "__main__":
     main()

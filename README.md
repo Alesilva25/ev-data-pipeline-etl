@@ -1,3 +1,18 @@
+Classes
+Scikit learn para análise de dados
+file handling
+lambda
+docker
+tratamento try, except
+Regex
+Interface em Django
+Criar arquivo txt com lista de chaves para procv futuro
+Decoradores
+Numpy
+Plotly ou matplotlib
+Documentação com MKdocs
+Disponibilizar download das bases de testes no frontend com dados gerados pela biblioteca faker
+
 📘 1. Visão Geral da Automação
     Esta automação realiza o processamento completo de bases relacionadas a Estações de Recarga (ERs) de veículos elétricos, consolidando informações de múltiplas fontes (Conectados Atual, Conectados Anterior, GeoPlan, AuditReport, SisLic e InfraGest), aplicando regras de negócio, detectando divergências e classificando as estações em diferentes categorias. O pipeline produz como resultado:
 
@@ -143,8 +158,8 @@
         2.3 - Se o valor na coluna [TIPO_ESTACAO_GEOPLAN] for igual a A DEFINIR, mas não em [AUX_TIPO_ESTACAO_GEOPLAN], então [TIPO_ESTACAO_GEOPLAN] é igual a [AUX_TIPO_ESTACAO_GEOPLAN]
 
     3 - Regras da base AuditReport:
-        3.1 - Se o valor na coluna [TIPO_ESTACAO_GEOPLAN] e [AUX_TIPO_DE_PONTO 62] tiverem o mesmo valor, nada é feito
-        3.2 - Se o valor na coluna [TIPO_ESTACAO_GEOPLAN] for igual a A DEFINIR, mas não em [AUX_TIPO_DE_PONTO 62], então [TIPO_ESTACAO_GEOPLAN] é igual a [AUX_TIPO_DE_PONTO 62]
+        3.1 - Se o valor na coluna [TIPO_DE_PONTO 62] e [AUX_TIPO_DE_PONTO 62] tiverem o mesmo valor, nada é feito
+        3.2 - Se o valor na coluna [TIPO_DE_PONTO 62] for igual a A DEFINIR, mas não em [AUX_TIPO_DE_PONTO 62], então [TIPO_DE_PONTO 62] é igual a [AUX_TIPO_DE_PONTO 62]
         3.3 - Mantém os valores de [AUX_LATITUDE 25] e [AUX_LONGITUDE 27] e o que estiver vazio nas colunas originais de coordenadas recebe os valores provindos da auditoria
 
     4 - Regras da base SisLic:
@@ -172,8 +187,8 @@
         6.6 - Se o valor na coluna [AUX_TIPO_ESTACAO_GEOPLAN] for igual a A DEFINIR ou NOVO_TERRENO ou COMERCIAL e [AUX_STATUS_SISLIC] for igual a NÃO TEM LICENÇA ou PENDENTE INSTALAÇÃO, mantém os status atuais e nos campos vazios mudar para "SEM CONEXÃO DE REDE"
 
     7 - Regras da coluna STATUS_FATURAMENTO:
-        7.1 - Se o valor na coluna [STATUS CONSOLIDADO] for igual a OPERACIONAL e [AUX_STATUS_INFRAGEST] for igual a CONECTADO ou PENDENTE ATIVAÇÃO, então [STATUS_FATURAMENTO] é igual a 1
-        7.2 - Se o valor na coluna [STATUS CONSOLIDADO] for igual a OPERACIONAL e [AUX_STATUS_INFRAGEST] for igual a INFRA NÃO CAPACITADA, então [STATUS_FATURAMENTO] é igual a 0
+        7.1 - Se o valor na coluna [STATUS CONSOLIDADO] for igual a OPERACIONAL e [STATUS_INFRAGEST] for igual a CONECTADO ou PENDENTE ATIVAÇÃO, então [STATUS_FATURAMENTO] é igual a 1
+        7.2 - Se o valor na coluna [STATUS CONSOLIDADO] for igual a OPERACIONAL e [STATUS_INFRAGEST] for igual a INFRA NÃO CAPACITADA, então [STATUS_FATURAMENTO] é igual a 0
         7.3 - Para qualquer caso que não bata com as duas condições anteriores, [STATUS_FATURAMENTO] é igual a 2
 
 💾 5. Outputs / Resultados

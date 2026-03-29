@@ -1,0 +1,176 @@
+Quero gerar dados sintéticos realistas em Python (pandas + numpy) para simular um pipeline completo de validação de Estações de Recarga (ERs).
+
+IMPORTANTE:
+Os dados NÃO devem estar tratados.
+Eles devem ser gerados de forma que PERMITAM a aplicação de todas as regras de negócio descritas abaixo.
+
+---
+
+## OBJETIVO
+
+Gerar múltiplas bases com:
+
+* Interseção parcial entre IDs
+* Dados inconsistentes e conflitantes
+* Cenários suficientes para validar TODAS as regras do pipeline
+* Volume aproximado: 80k–100k registros
+
+---
+
+## CHAVE PRINCIPAL
+
+ID_ESTACAO no formato:
+EV-10000 até EV-99999
+
+---
+
+## BASES
+
+1. t_conectados_atual (base mestre)
+   Deve conter:
+
+* ID_ESTACAO
+* STATUS E-MAIL
+* STATUS CONSOLIDADO (valores variados)
+* SISTEMA_ORIGEM
+* DATA_CARGA
+
+Regras:
+
+* Deve conter IDs que NÃO existem na base anterior (novos registros)
+
+---
+
+2. t_conectados_anterior
+
+Deve conter:
+
+* ID_ESTACAO
+* STATUS CONSOLIDADO
+* STATUS E-MAIL
+* STATUS_SISLIC
+* SISTEMA_ER
+* TIPO_ESTACAO_GEOPLAN
+* TIPO_DE_PONTO 62
+* LATITUDE
+* LONGITUDE
+* CHECKS
+* MES_REFERENCIA
+
+Regras obrigatórias:
+
+* Parte dos dados iguais ao atual
+* Parte divergente
+* Parte nula
+
+---
+
+3. GeoPlan
+
+* ID_ESTACAO
+* TIPO_ESTACAO_GEOPLAN
+
+Regras:
+
+* Deve conter valores:
+  INTERNO, SHOPPING, SUPERMERCADO, COBERTURA, A DEFINIR, NOVO_TERRENO, COMERCIAL
+* Deve conter nulos
+* Deve conter valores diferentes da base anterior
+
+---
+
+4. AuditReport
+
+* CODIGO_ER 1
+* TIPO_DE_PONTO 62
+* LATITUDE 25
+* LONGITUDE 27
+
+Regras obrigatórias:
+
+* Coordenadas mais confiáveis que outras bases
+* Parte igual à base anterior
+* Parte divergente
+* Parte preenchendo valores nulos
+
+---
+
+5. SisLic
+
+* CODIGO_ER
+* STATUS_SISLIC
+
+Regras CRÍTICAS:
+
+* Deve haver múltiplas linhas por ER
+* Deve gerar os cenários:
+
+  * ER com APROVADO + EM ANÁLISE
+  * ER apenas EM ANÁLISE
+  * ER com status conflitantes
+* Garantir que após deduplicação lógica:
+
+  * APROVADO tenha prioridade
+  * Caso contrário EM ANÁLISE seja usado
+
+---
+
+6. InfraGest
+
+* PONTO_ER
+* STATUS_INFRAGEST
+
+Regras obrigatórias:
+Gerar cenários:
+
+* CONECTADO vs CONECTADO
+* CONECTADO vs NÃO CONECTADO
+* vazio vs CONECTADO
+* vazio vs vazio (para gerar INFRA NÃO CAPACITADA)
+
+---
+
+---
+
+## CENÁRIOS OBRIGATÓRIOS (ESSENCIAL)
+
+Os dados DEVEM permitir:
+
+1. Substituição de "A DEFINIR"
+2. Divergência entre bases
+3. Preenchimento de coordenadas
+4. Deduplicação do SisLic
+5. Geração de divergências para validação
+6. Classificação em:
+
+   * OPERACIONAL
+   * COBERTURA
+   * QUEBRA (outros status)
+7. Cálculo de STATUS_FATURAMENTO:
+
+   * 1 (com uso)
+   * 0 (sem uso)
+   * 2 (outros)
+
+---
+
+## REGRAS IMPORTANTES
+
+* NÃO aplicar regras de negócio
+* NÃO limpar os dados
+* NÃO padronizar totalmente
+
+Os dados devem estar "sujos", porém estruturados
+
+---
+
+## OUTPUT
+
+* Arquivos Excel (.xlsx)
+* Pasta /bases
+* Código organizado em funções
+* Função main()
+
+---
+
+Retorne o código Python completo.
