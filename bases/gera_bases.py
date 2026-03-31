@@ -1,193 +1,145 @@
 import pandas as pd
 import numpy as np
 import os
-from datetime import datetime, timedelta
-import random
 
-# -----------------------------
+# -------------------------
 # CONFIG
-# -----------------------------
-N_REGISTROS = 90000
-OUTPUT_DIR = "bases"
+# -------------------------
+N = 50000
+np.random.seed(42)
 
-TIPOS_ESTACAO = [
-    "INTERNO", "SHOPPING", "SUPERMERCADO",
-    "COBERTURA", "A DEFINIR", "NOVO_TERRENO", "COMERCIAL"
+IDS = [f"EV-{i}" for i in np.random.choice(range(10000, 99999), N, replace=False)]
+
+STATUS_CONSOLIDADO = ["OPERACIONAL", "COBERTURA", "QUEBRA", None]
+STATUS_EMAIL = ["ENVIADO", "PENDENTE", None]
+SISTEMA_ORIGEM = ["SAP", "API", "MANUAL"]
+
+TIPO_GEOPLAN = [
+    "INTERNO", "SHOPPING", "SUPERMERCADO", "COBERTURA",
+    "A DEFINIR", "NOVO_TERRENO", "COMERCIAL", None
 ]
 
-STATUS_SISLIC = ["APROVADO", "EM ANÁLISE", "NÃO TEM LICENÇA", "PENDENTE INSTALAÇÃO"]
-STATUS_INFRAGEST = ["CONECTADO", "NÃO CONECTADO", None]
+STATUS_CONEXAO = ["CONECTADO", "NÃO CONECTADO", None]
 
-STATUS_CONSOLIDADO = [
-    "OPERACIONAL",
-    "ESTAÇÃO EM COBERTURA",
-    "SEM CONEXÃO DE REDE",
-    "ALTO CUSTO - OBRAS",
-    "CARREGADOR LENTO - INTERNO"
-]
-
-# -----------------------------
-# HELPERS
-# -----------------------------
-def gerar_ids(n):
-    return [f"EV-{i}" for i in range(10000, 10000 + n)]
-
-def gerar_coordenadas(n, confiavel=False):
-    if confiavel:
-        return (
-            np.random.uniform(-24, -23, n),  # SP latitude
-            np.random.uniform(-47, -46, n)
-        )
-    else:
-        lat = np.random.choice(
-            [None, 0, *np.random.uniform(-24, -23, 10)],
-            size=n
-        )
-        lon = np.random.choice(
-            [None, 0, *np.random.uniform(-47, -46, 10)],
-            size=n
-        )
-        return lat, lon
-
-def random_dates(n):
-    base = datetime.today()
-    return [base - timedelta(days=random.randint(0, 365)) for _ in range(n)]
-
-# -----------------------------
+# -------------------------
 # BASE 1 - ATUAL
-# -----------------------------
-def gerar_conectados_atual(ids):
+# -------------------------
+def gerar_conectados_atual():
     df = pd.DataFrame({
-        "ID_ESTACAO": ids,
-        "STATUS E-MAIL": np.random.choice([None, "OK", "PENDENTE"], len(ids)),
-        "STATUS CONSOLIDADO": np.random.choice(STATUS_CONSOLIDADO, len(ids)),
-        "SISTEMA_ORIGEM": np.random.choice(["SAP", "CRM", "LEGADO"], len(ids)),
-        "DATA_CARGA": random_dates(len(ids))
+        "ID_ESTACAO": IDS,
+        "STATUS_EMAIL": np.random.choice(STATUS_EMAIL, N),
+        "STATUS_CONSOLIDADO": np.random.choice(STATUS_CONSOLIDADO, N),
+        "SISTEMA_ORIGEM": np.random.choice(SISTEMA_ORIGEM, N),
+        "DATA_CARGA": pd.to_datetime("2025-01-01") + pd.to_timedelta(np.random.randint(0, 30, N), unit='d')
     })
     return df
 
-# -----------------------------
+# -------------------------
 # BASE 2 - ANTERIOR
-# -----------------------------
-def gerar_conectados_anterior(ids):
-    ids_subset = np.random.choice(ids, int(len(ids) * 0.8), replace=False)
-
-    lat, lon = gerar_coordenadas(len(ids_subset), confiavel=False)
+# -------------------------
+def gerar_conectados_anterior():
+    sample_ids = np.random.choice(IDS, int(N * 0.8), replace=False)
 
     df = pd.DataFrame({
-        "ID_ESTACAO": ids_subset,
-        "STATUS CONSOLIDADO": np.random.choice(STATUS_CONSOLIDADO, len(ids_subset)),
-        "STATUS E-MAIL": np.random.choice([None, "OK", "ERRO"], len(ids_subset)),
-        "STATUS_SISLIC": np.random.choice(STATUS_SISLIC, len(ids_subset)),
-        "SISTEMA_ER": np.random.choice(["CONECTADO", None], len(ids_subset)),
-        "TIPO_ESTACAO_GEOPLAN": np.random.choice(TIPOS_ESTACAO + [None], len(ids_subset)),
-        "TIPO_DE_PONTO 62": np.random.choice(TIPOS_ESTACAO + [None], len(ids_subset)),
-        "LATITUDE": lat,
-        "LONGITUDE": lon,
-        "CHECKS": np.random.choice([None, "OK", "PENDENTE"], len(ids_subset)),
-        "MES_REFERENCIA": np.random.choice(["01/2025", "02/2025", "03/2025"], len(ids_subset))
+        "ID_ESTACAO": sample_ids,
+        "STATUS_CONSOLIDADO": np.random.choice(STATUS_CONSOLIDADO, len(sample_ids)),
+        "STATUS_EMAIL": np.random.choice(STATUS_EMAIL, len(sample_ids)),
+        "STATUS_SISLIC": np.random.choice(["APROVADO", "EM ANÁLISE", None], len(sample_ids)),
+        "SISTEMA_ER": np.random.choice(STATUS_CONEXAO, len(sample_ids)),
+        "TIPO_ESTACAO_GEOPLAN": np.random.choice(TIPO_GEOPLAN, len(sample_ids)),
+        "TIPO_DE_PONTO 62": np.random.choice(["RÁPIDO", "LENTO", None], len(sample_ids)),
+        "LATITUDE": np.random.uniform(-30, -10, len(sample_ids)),
+        "LONGITUDE": np.random.uniform(-60, -40, len(sample_ids)),
+        "CHECKS": np.random.randint(0, 5, len(sample_ids)),
+        "MES_REFERENCIA": np.random.choice(["2025-01", "2025-02", None], len(sample_ids))
     })
+
+    # Inserir nulos
+    for col in ["LATITUDE", "LONGITUDE", "TIPO_ESTACAO_GEOPLAN"]:
+        df.loc[df.sample(frac=0.1).index, col] = None
 
     return df
 
-# -----------------------------
+# -------------------------
 # BASE 3 - GEOPLAN
-# -----------------------------
-def gerar_geoplan(ids):
-    ids_subset = np.random.choice(ids, int(len(ids) * 0.7), replace=False)
+# -------------------------
+def gerar_geoplan():
+    ids = np.random.choice(IDS, int(N * 0.7), replace=False)
+    return pd.DataFrame({
+        "ID_ESTACAO": ids,
+        "TIPO_ESTACAO_GEOPLAN": np.random.choice(TIPO_GEOPLAN, len(ids))
+    })
+
+# -------------------------
+# BASE 4 - AUDIT
+# -------------------------
+def gerar_audit():
+    ids = np.random.choice(IDS, int(N * 0.75), replace=False)
 
     df = pd.DataFrame({
-        "ID_ESTACAO": ids_subset,
-        "TIPO_ESTACAO_GEOPLAN": np.random.choice(TIPOS_ESTACAO + [None], len(ids_subset))
+        "CODIGO_ER 1": ids,
+        "TIPO_DE_PONTO 62": np.random.choice(["RÁPIDO", "LENTO"], len(ids)),
+        "LATITUDE 25": np.random.uniform(-30, -10, len(ids)),
+        "LONGITUDE 27": np.random.uniform(-60, -40, len(ids))
     })
+
+    # Parte divergente
+    df.loc[df.sample(frac=0.2).index, "LATITUDE 25"] += np.random.uniform(0.01, 0.5)
 
     return df
 
-# -----------------------------
-# BASE 4 - AUDIT REPORT
-# -----------------------------
-def gerar_audit(ids):
-    ids_subset = np.random.choice(ids, int(len(ids) * 0.6), replace=False)
+# -------------------------
+# BASE 5 - SISLIC
+# -------------------------
+def gerar_sislic():
+    rows = []
 
-    lat, lon = gerar_coordenadas(len(ids_subset), confiavel=True)
-
-    df = pd.DataFrame({
-        "CODIGO_ER 1": ids_subset,
-        "TIPO_DE_PONTO 62": np.random.choice(TIPOS_ESTACAO, len(ids_subset)),
-        "LATITUDE 25": lat,
-        "LONGITUDE 27": lon
-    })
-
-    return df
-
-# -----------------------------
-# BASE 5 - SISLIC (COM DUPLICIDADE)
-# -----------------------------
-def gerar_sislic(ids):
-    registros = []
-
-    for id_ in ids:
-        n_linhas = np.random.choice([1, 2, 3])
-
-        statuses = np.random.choice(STATUS_SISLIC, n_linhas)
-
-        for s in statuses:
-            registros.append({
+    for id_ in np.random.choice(IDS, int(N * 0.6), replace=False):
+        n = np.random.randint(1, 4)
+        for _ in range(n):
+            rows.append({
                 "CODIGO_ER": id_,
-                "STATUS_SISLIC": s
+                "STATUS_SISLIC": np.random.choice(["APROVADO", "EM ANÁLISE", "REPROVADO"])
             })
 
-    return pd.DataFrame(registros)
+    return pd.DataFrame(rows)
 
-# -----------------------------
+# -------------------------
 # BASE 6 - INFRAGEST
-# -----------------------------
-def gerar_infratest(ids):
-    ids_subset = np.random.choice(ids, int(len(ids) * 0.75), replace=False)
+# -------------------------
+def gerar_infrgest():
+    ids = np.random.choice(IDS, int(N * 0.85), replace=False)
 
-    df = pd.DataFrame({
-        "PONTO_ER": ids_subset,
-        "STATUS_INFRAGEST": np.random.choice(STATUS_INFRAGEST, len(ids_subset))
+    return pd.DataFrame({
+        "PONTO_ER": ids,
+        "STATUS_INFRAGEST": np.random.choice(STATUS_CONEXAO, len(ids))
     })
 
-    return df
+# -------------------------
+# SAVE
+# -------------------------
+def salvar_bases(bases):
+    os.makedirs("bases", exist_ok=True)
 
-# -----------------------------
-# EXPORTAÇÃO
-# -----------------------------
-def salvar_excel(df, nome):
-    path = os.path.join(OUTPUT_DIR, nome)
-    df.to_excel(path, index=False)
+    for nome, df in bases.items():
+        path = f"bases/{nome}.xlsx"
+        df.to_excel(path, index=False)
 
-# -----------------------------
+# -------------------------
 # MAIN
-# -----------------------------
+# -------------------------
 def main():
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
+    bases = {
+        "t_conectados_atual": gerar_conectados_atual(),
+        "t_conectados_anterior": gerar_conectados_anterior(),
+        "geoplan": gerar_geoplan(),
+        "AuditReport": gerar_audit(),
+        "sislic": gerar_sislic(),
+        "infragest": gerar_infrgest()
+    }
 
-    print("Gerando IDs...")
-    ids = gerar_ids(N_REGISTROS)
+    salvar_bases(bases)
 
-    print("Gerando bases...")
-
-    atual = gerar_conectados_atual(ids)
-    anterior = gerar_conectados_anterior(ids)
-    geoplan = gerar_geoplan(ids)
-    audit = gerar_audit(ids)
-    sislic = gerar_sislic(ids)
-    infragest = gerar_infratest(ids)
-
-    print("Salvando arquivos...")
-
-    salvar_excel(atual, "t_conectados_atual.xlsx")
-    salvar_excel(anterior, "t_conectados_anterior.xlsx")
-    salvar_excel(geoplan, "GeoPlan.xlsx")
-    salvar_excel(audit, "AuditReport.xlsx")
-    salvar_excel(sislic, "SisLic.xlsx")
-    salvar_excel(infragest, "InfraGest.xlsx")
-
-    print("✅ Bases geradas com sucesso!")
 
 if __name__ == "__main__":
     main()

@@ -26,8 +26,9 @@ EV-10000 até EV-99999
 
 ## BASES
 
-1. t_conectados_atual (base mestre)
-   Deve conter:
+### 1. t_conectados_atual (base mestre)
+
+Deve conter:
 
 * ID_ESTACAO
 * STATUS E-MAIL
@@ -41,7 +42,7 @@ Regras:
 
 ---
 
-2. t_conectados_anterior
+### 2. t_conectados_anterior
 
 Deve conter:
 
@@ -63,9 +64,30 @@ Regras obrigatórias:
 * Parte divergente
 * Parte nula
 
+#### 🔴 REGRA CRÍTICA – SISTEMA_ER
+
+A coluna `SISTEMA_ER` NÃO pode conter apenas "CONECTADO".
+
+Ela deve conter obrigatoriamente:
+
+* "CONECTADO"
+* "NÃO CONECTADO"
+* valores nulos (None)
+
+Além disso:
+
+* Os valores devem ser gerados de forma a permitir comparação com a base InfraGest
+* Devem existir cenários onde:
+
+  * SISTEMA_ER = CONECTADO e InfraGest = CONECTADO
+  * SISTEMA_ER = CONECTADO e InfraGest = NÃO CONECTADO (divergência)
+  * SISTEMA_ER = NÃO CONECTADO e InfraGest = CONECTADO (divergência)
+  * SISTEMA_ER = None e InfraGest = CONECTADO (preenchimento)
+  * SISTEMA_ER = None e InfraGest = None (cenário para "INFRA NÃO CAPACITADA")
+
 ---
 
-3. GeoPlan
+### 3. GeoPlan
 
 * ID_ESTACAO
 * TIPO_ESTACAO_GEOPLAN
@@ -74,12 +96,12 @@ Regras:
 
 * Deve conter valores:
   INTERNO, SHOPPING, SUPERMERCADO, COBERTURA, A DEFINIR, NOVO_TERRENO, COMERCIAL
-* Deve conter nulos
+* Deve conter valores nulos
 * Deve conter valores diferentes da base anterior
 
 ---
 
-4. AuditReport
+### 4. AuditReport
 
 * CODIGO_ER 1
 * TIPO_DE_PONTO 62
@@ -95,7 +117,7 @@ Regras obrigatórias:
 
 ---
 
-5. SisLic
+### 5. SisLic
 
 * CODIGO_ER
 * STATUS_SISLIC
@@ -103,11 +125,13 @@ Regras obrigatórias:
 Regras CRÍTICAS:
 
 * Deve haver múltiplas linhas por ER
+
 * Deve gerar os cenários:
 
   * ER com APROVADO + EM ANÁLISE
   * ER apenas EM ANÁLISE
   * ER com status conflitantes
+
 * Garantir que após deduplicação lógica:
 
   * APROVADO tenha prioridade
@@ -115,20 +139,31 @@ Regras CRÍTICAS:
 
 ---
 
-6. InfraGest
+### 6. InfraGest
 
 * PONTO_ER
 * STATUS_INFRAGEST
 
 Regras obrigatórias:
-Gerar cenários:
+
+A coluna `STATUS_INFRAGEST` deve conter:
+
+* "CONECTADO"
+* "NÃO CONECTADO"
+* valores nulos (None)
+
+Deve gerar cenários:
 
 * CONECTADO vs CONECTADO
 * CONECTADO vs NÃO CONECTADO
+* NÃO CONECTADO vs CONECTADO
 * vazio vs CONECTADO
-* vazio vs vazio (para gerar INFRA NÃO CAPACITADA)
+* vazio vs vazio (para gerar "INFRA NÃO CAPACITADA")
 
----
+IMPORTANTE:
+
+* Esta base é a referência para comparação com `SISTEMA_ER`
+* Os dados devem ser gerados de forma que existam divergências reais entre as duas bases
 
 ---
 
@@ -137,15 +172,21 @@ Gerar cenários:
 Os dados DEVEM permitir:
 
 1. Substituição de "A DEFINIR"
+
 2. Divergência entre bases
+
 3. Preenchimento de coordenadas
+
 4. Deduplicação do SisLic
+
 5. Geração de divergências para validação
+
 6. Classificação em:
 
    * OPERACIONAL
    * COBERTURA
    * QUEBRA (outros status)
+
 7. Cálculo de STATUS_FATURAMENTO:
 
    * 1 (com uso)

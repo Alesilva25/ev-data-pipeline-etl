@@ -153,14 +153,15 @@ Disponibilizar download das bases de testes no frontend com dados gerados pela b
         1.2 - Os valores de conectados_anterior são trazidos apenas para as chaves de [ID_ESTACAO] que existirem na base atual. Chaves novas recebem valores vazios para posterior classificação
 
     2 - Regras da base GeoPlan:
-        2.1 - Todos os valores nulos em [AUX_TIPO_ESTACAO_GEOPLAN] recebem o valor A DEFINIR
-        2.2 - Se o valor na coluna [TIPO_ESTACAO_GEOPLAN] e [AUX_TIPO_ESTACAO_GEOPLAN] tiverem o mesmo valor, nada é feito
-        2.3 - Se o valor na coluna [TIPO_ESTACAO_GEOPLAN] for igual a A DEFINIR, mas não em [AUX_TIPO_ESTACAO_GEOPLAN], então [TIPO_ESTACAO_GEOPLAN] é igual a [AUX_TIPO_ESTACAO_GEOPLAN]
+        2.1 - Valores nulos em ['AUX_TIPO_ESTACAO_GEOPLAN'] = A DEFINIR
+        2.2 - Se [TIPO_ESTACAO_GEOPLAN] == [AUX_TIPO_ESTACAO_GEOPLAN], nada é feito
+        2.3 - Se [TIPO_ESTACAO_GEOPLAN] == A DEFINIR, mas não em [AUX_TIPO_ESTACAO_GEOPLAN], então [TIPO_ESTACAO_GEOPLAN] = [AUX_TIPO_ESTACAO_GEOPLAN]
+        2.4 - Se [TIPO_ESTACAO_GEOPLAN] != [AUX_TIPO_ESTACAO_GEOPLAN] & [TIPO_ESTACAO_GEOPLAN] != "A DEFINIR" & [AUX_TIPO_ESTACAO_GEOPLAN] != null, então é enviado para validação
 
     3 - Regras da base AuditReport:
-        3.1 - Se o valor na coluna [TIPO_DE_PONTO 62] e [AUX_TIPO_DE_PONTO 62] tiverem o mesmo valor, nada é feito
-        3.2 - Se o valor na coluna [TIPO_DE_PONTO 62] for igual a A DEFINIR, mas não em [AUX_TIPO_DE_PONTO 62], então [TIPO_DE_PONTO 62] é igual a [AUX_TIPO_DE_PONTO 62]
-        3.3 - Mantém os valores de [AUX_LATITUDE 25] e [AUX_LONGITUDE 27] e o que estiver vazio nas colunas originais de coordenadas recebe os valores provindos da auditoria
+        3.1 - Se [TIPO_DE_PONTO 62] == [AUX_TIPO_DE_PONTO], nada é feito
+        3.2 - Se [TIPO_DE_PONTO 62] == A DEFINIR, mas não em [AUX_TIPO_DE_PONTO 62], então [TIPO_DE_PONTO 62] == [AUX_TIPO_DE_PONTO 62]
+        3.3 - ['LATITUDE', 'LONGITUDE'] = ['AUX_LATITUDE', 'AUX_LONGITUDE'] onde não está vazio
 
     4 - Regras da base SisLic:
         ** SisLic possui chaves repetidas em [CODIGO_ER] com status diferentes. Não devem ser excluídas de imediato
@@ -168,15 +169,15 @@ Disponibilizar download das bases de testes no frontend com dados gerados pela b
             caso encontre alguma chave com Status = APROVADO, então exclui outras chaves duplicadas
             se não tiver APROVADO busca EM ANÁLISE e exclui chaves duplicadas
 
-        4.1 - Se o valor na coluna [STATUS_SISLIC] e [AUX_STATUS_SISLIC] forem iguais, então não faz nada
-        4.2 - Se o valor na coluna [STATUS_SISLIC] for igual a APROVADO e [AUX_STATUS_SISLIC] não for APROVADO, então enviar para tabela de validação
-        4.3 - Se o valor na coluna [STATUS_SISLIC] for diferente de APROVADO, então substitui o valor de [STATUS_SISLIC] pelo valor de [AUX_STATUS_SISLIC]
+        4.1 - Se [STATUS_SISLIC] == [AUX_STATUS_SISLIC], nada é feito
+        4.2 - Se [STATUS_SISLIC] == APROVADO e [AUX_STATUS_SISLIC] != APROVADO, então devolve dados para validação manual
+        4.3 - Se [STATUS_SISLIC] != APROVADO, então [STATUS_SISLIC] = [AUX_STATUS_SISLIC]
 
     5 - Regras da base InfraGest:
-        5.1 - Se o valor na coluna [SISTEMA_ER] for igual a CONECTADO e [AUX_STATUS_INFRAGEST] for igual a CONECTADO, então nada é feito
-        5.2 - Se o valor na coluna [SISTEMA_ER] estiver vazio, ele recebe o valor de [AUX_STATUS_INFRAGEST]
-        5.3 - Se o valor na coluna [SISTEMA_ER] for igual a CONECTADO e [AUX_STATUS_INFRAGEST] for diferente de CONECTADO, então é enviado para validação
-        5.4 - Se o valor na coluna [SISTEMA_ER] estiver vazio e o valor de [AUX_STATUS_INFRAGEST] também, então [SISTEMA_ER] é igual a INFRA NÃO CAPACITADA
+        5.1 - Se [SISTEMA_ER] == CONECTADO e [STATUS_INFRAGEST] == a CONECTADO, nada é feito
+        5.2 - Se [SISTEMA_ER] == vazio, então [SISTEMA_ER] = [STATUS_INFRAGEST]
+        5.3 - Se [SISTEMA_ER] == CONECTADO e [STATUS_INFRAGEST] != CONECTADO, então é enviado para validação
+        5.4 - Se o valor na coluna [SISTEMA_ER] estiver vazio e o valor de [STATUS_INFRAGEST] também, então [SISTEMA_ER] é igual a INFRA NÃO CAPACITADA
 
     6 - Regras para classificação de ERs:
         6.1 - Se o valor na coluna [STATUS E-MAIL] estiver preenchido mantém a informação do [STATUS CONSOLIDADO] atual
