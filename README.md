@@ -1,4 +1,3 @@
-Classes
 Scikit learn para análise de dados
 file handling
 lambda
@@ -6,9 +5,7 @@ docker
 tratamento try, except
 Regex
 Interface em Django
-Criar arquivo txt com lista de chaves para procv futuro
-Decoradores
-Numpy
+Criar arquivo json com lista de chaves para procv futuro
 Plotly ou matplotlib
 Documentação com MKdocs
 Disponibilizar download das bases de testes no frontend com dados gerados pela biblioteca faker
